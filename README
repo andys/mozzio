@@ -1,0 +1,24 @@
+
+mozzio - Portable C device I/O benchmark
+----------------------------------------
+
+
+Feature list / Wishlist:
+
+* test and report large-bock sequential and small-block random I/O speed
+
+* support files as well as raw devices
+
+* compile and run on any unix operating system
+
+* be configurable to scale from slow hard disks to big fast SSD RAIDs
+
+* support a number of workers to test multi-threaded concurrent I/O performance
+
+
+
+Currently, v0.1 it only supports writing a large file and measuring sequential
+read/write, and then testing 4kB small block random I/O, all in a single
+thread.
+
+

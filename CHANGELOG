@@ -1,0 +1,3 @@
+
+v0.1. supports writing a single large file and measuring sequential read/write, and then testing 4kB small block random I/O, all in a single thread.
+

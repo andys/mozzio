@@ -150,7 +150,8 @@ void *test_thread(void *ptr)
     }
     else if(mystate->test_flags & MOZZIO_WRITE && mystate->test_flags & MOZZIO_RANDOM)
     {
-        while(mystate->bytes_total ? mystate->bytes_done < mystate->bytes_total : (get_timestamp() - mystate->start_time) < mystate->run_time)
+        /*fprintf(stderr, "debug: %jd %jd %.1f %.1f\n", (intmax_t)mystate->bytes_total, (intmax_t)mystate->bytes_done, mystate->start_time, mystate->run_time);*/
+        while((get_timestamp() - mystate->start_time) < mystate->run_time)
         {
             p = random_data + mt_random(&mystate->mt) % (RANDOM_DATA_BYTES - todo);
             if((done = pwrite(fd, p, todo, todo * (mt_random(&mystate->mt) % (mystate->filesize/todo)))) < todo)
@@ -165,7 +166,7 @@ void *test_thread(void *ptr)
     {
         if(!(buf = malloc(todo)))
             fail("malloc");
-        while(mystate->bytes_total ? mystate->bytes_done < mystate->bytes_total : (get_timestamp() - mystate->start_time) < mystate->run_time)
+        while((get_timestamp() - mystate->start_time) < mystate->run_time)
         {
             p = random_data + mt_random(&mystate->mt) % (RANDOM_DATA_BYTES - todo);
             if((done = pread(fd, buf, todo, todo * (mt_random(&mystate->mt) % (mystate->filesize/todo)))) < todo)
@@ -190,7 +191,7 @@ int collect_thread_stats(int num_threads)
         global_state.ios_done += state[thr].ios_done;
         if(!state[thr].finished_flag)
             retval++;
-        if(!thr || global_state.start_time > state[thr].start_time)
+        if(!thr || global_state.start_time < state[thr].start_time)
             global_state.start_time = state[thr].start_time;
     }
     return(retval);
@@ -198,13 +199,15 @@ int collect_thread_stats(int num_threads)
 
 void perform_test(const char *path, int test_flags, int run_time, int block_size_kb, int file_size_gb, int write_size_mb, int num_threads)
 {
-    int thread, fd_flags, n = 1;
+    int thread, fd_flags = O_RDONLY, n = 1;
     pthread_t syncer;
 
-    fd_flags = test_flags & MOZZIO_RANDOM ? O_SYNC : O_APPEND;
-    fd_flags |= test_flags & MOZZIO_WRITE ? O_WRONLY : O_RDONLY;
+    if(test_flags & MOZZIO_WRITE)
+    {
+        fd_flags = O_WRONLY | (test_flags & MOZZIO_RANDOM ? O_SYNC : O_TRUNC|O_APPEND);
+    }
         
-    if((fd = open(path, O_CREAT|O_TRUNC|O_LARGEFILE|fd_flags, 0666))<0)
+    if((fd = open(path, O_CREAT|O_LARGEFILE|fd_flags, 0666))<0)
         fail(path);
 
     global_state.run_time = (double) run_time;
@@ -312,7 +315,7 @@ int main(int argc, char *argv[])
                     if(file_size <= 0)
                         print_help("invalid file size in GB");
                 case 'r':
-                    run_time = atoi(optarg);
+                    /*run_time = atoi(optarg);*/
                     if(run_time <= 0)
                         print_help("invalid run time in seconds");
                     break;
@@ -352,12 +355,14 @@ int main(int argc, char *argv[])
 
         init_random_data();
 	
+	fprintf(stderr, "Starting mozzio. threads: %d, run time: %d, file size: %d, block size: %d, write size: %d\n", num_threads, run_time, file_size, block_size, write_size);
+	
 	print_status_header();
 
-        perform_test(path, test_options|MOZZIO_WRITE|MOZZIO_SEQUENTIAL, run_time, RANDOM_DATA_BYTES>>10, file_size, write_size, 1);
-        perform_test(path, test_options|MOZZIO_READ|MOZZIO_SEQUENTIAL,  run_time, RANDOM_DATA_BYTES>>10, file_size, 0, 1);
-        perform_test(path, test_options|MOZZIO_WRITE|MOZZIO_RANDOM,     run_time, 4, file_size, 0, 256);
-        perform_test(path, test_options|MOZZIO_READ|MOZZIO_RANDOM,      run_time, 4, file_size, 0, 256);
+        perform_test(path, test_options | MOZZIO_WRITE | MOZZIO_SEQUENTIAL, run_time, RANDOM_DATA_BYTES>>10, file_size, write_size, 1);
+        perform_test(path, test_options | MOZZIO_READ  | MOZZIO_SEQUENTIAL, run_time, RANDOM_DATA_BYTES>>10, file_size, write_size, 1);
+        perform_test(path, test_options | MOZZIO_WRITE | MOZZIO_RANDOM,     run_time, 4, file_size, 0, 256);
+        perform_test(path, test_options | MOZZIO_READ  | MOZZIO_RANDOM,     run_time, 4, file_size, 0, 256);
 
 	return(0);
 }
@@ -385,7 +390,7 @@ void print_status(struct MOZZIO_TEST_STATE *state, const char *extra)
 	if(progress>1)
 	    progress = 1;
 	
-	fprintf(stderr, "\r%-4s %-7s %5u %-8u %-7jd %-8d %-7jd %-6jd %-6jdMB/s %5.1f%% %s",
+	fprintf(stderr, "\r%-4s %-7s %-5u %-8u %-7jd %-8d %-7jd %-6jd %-6jdMB/s %5.1f%% %s",
 		state->test_flags & MOZZIO_RANDOM ? "Rand" : "Seq",
 		state->test_flags & MOZZIO_WRITE ? "Write" : "Read",
 		state->thread_num,

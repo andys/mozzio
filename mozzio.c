@@ -267,7 +267,7 @@ void print_help(const char *extra)
     fprintf(stderr, "mozzio - Disk benchmark - http://mozzio.org\n\
 Options:\n\
   -h           This help\n\
-  -p path      Path to benchmark file (default: mozzio.bin)n\n\
+  -p path      Path to benchmark file (default: mozzio.bin)\n\
   -d device    Path to benchmark device (use only -p or -d)\n\
   -b blcksize  Block size in kB  (default: 4kB random, 1024kB sequential)\n\
   -s filesize  File/device size in GB  (default: 10GB) (for seq write test)\n\
@@ -314,8 +314,9 @@ int main(int argc, char *argv[])
                     file_size = atoi(optarg);
                     if(file_size <= 0)
                         print_help("invalid file size in GB");
+                    break;
                 case 'r':
-                    /*run_time = atoi(optarg);*/
+                    run_time = atoi(optarg);
                     if(run_time <= 0)
                         print_help("invalid run time in seconds");
                     break;
@@ -331,6 +332,7 @@ int main(int argc, char *argv[])
 	            test_options |= MOZZIO_FILE;
 	            break;
                 case 'd':
+                    print_help("devices are not supported yet");
                     path = (char *) strdup(optarg);
 	            test_options |= MOZZIO_DEV;
 	            if(test_options & MOZZIO_FILE)
@@ -404,21 +406,6 @@ void print_status(struct MOZZIO_TEST_STATE *state, const char *extra)
 		extra
 	);
 }
-
-/*
-0123456789  0123456789012 012345678901 012345678 01234567 01234     0123
-            Block(kB) Size(GB) Time(sec) Done(MB) Xfer Rate            Progress
-Seq  Read   128       4        900       32768    12345io/s 1234MB/s   99.9%    
-Seq  Write  4         
-Rand Read   16  
-Rand Write  16-64     
-
-1. progress went to 100% too early
-
-
-*/
-
-
 
 
 

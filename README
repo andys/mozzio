@@ -25,3 +25,8 @@ Wishlist:
 * run across multiple hosts
 
 * auto-size the parameters
+
+* support test data for: 
+	- uncompressible vs compressible
+	- de-dupable vs non-de-dupable
+

@@ -11,16 +11,18 @@ Feature list:
 	3. small-block random I/O read,
 	4. and write
 
+* uncompressible and non-dedupable data for random IO tests
+
 * supports multi-threaded concurrent I/O tests 
 
 * configurable from slow hard disks to fast SSD RAIDs
+
+* compiles and runs properly across OSX,linux,BSD
 
 
 Wishlist:
 
 * support raw devices 
-
-* compile and run properly across OSX,linux,BSD
 
 * run across multiple hosts
 

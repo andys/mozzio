@@ -166,7 +166,7 @@ void *test_thread(void *ptr)
             mystate->bytes_done += done;
             mystate->ios_done++;
         }
-        *lp++;
+        (*lp)++;
     }
     if(mystate->bytes_total)
         fsync(fd);
@@ -302,12 +302,6 @@ void init_random_data(void)
 
 int main(int argc, char *argv[])
 {
-	unsigned long int blocksize = 4096;
-	off_t filesize = 5 * 1024 * 1024 * 1024LL;
-	unsigned long int num_writes = 3000;
-	unsigned char *p;
-	unsigned long int i, x;
-	
 	char *path = "mozzio.bin";
 	int optchar, test_options=0, num_threads=128, file_size=10, block_size=4;
 

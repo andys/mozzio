@@ -22,7 +22,7 @@
 #define MT_LEN 624
 struct MT {
     int mt_index;
-    unsigned long mt_buffer[MT_LEN];
+    uint32_t mt_buffer[MT_LEN];
 };
 void mt_init(struct MT *mt) {
 	int i;
@@ -37,13 +37,13 @@ void mt_init(struct MT *mt) {
 #define MATRIX_A        0x9908B0DF
 #define TWIST(b,i,j)    ((b)[i] & UPPER_MASK) | ((b)[j] & LOWER_MASK)
 #define MAGIC(s)        (((s)&1)*MATRIX_A)
-unsigned long mt_random(struct MT *mt) { /* always returns numbers between 0 and 2^32-1 */
-	unsigned long *b = mt->mt_buffer;
+uint32_t mt_random(struct MT *mt) { /* always returns numbers between 0 and 2^32-1 */
+	uint32_t *b = mt->mt_buffer;
 	int idx = mt->mt_index;
-	unsigned long s;
+	uint32_t s;
 	int i;
 
-	if (idx == MT_LEN*sizeof(unsigned long))
+	if (idx == MT_LEN*sizeof(uint32_t))
 	{
 		idx = 0;
 		i = 0;
@@ -59,8 +59,8 @@ unsigned long mt_random(struct MT *mt) { /* always returns numbers between 0 and
 		s = TWIST(b, MT_LEN-1, 0);
 		b[MT_LEN-1] = b[MT_IA-1] ^ (s >> 1) ^ MAGIC(s);
 	}
-	mt->mt_index = idx + sizeof(unsigned long);
-	return *(unsigned long *)((unsigned char *)b + idx);
+	mt->mt_index = idx + sizeof(uint32_t);
+	return *(uint32_t *)((unsigned char *)b + idx);
 }
 /* end of Mersenne Twister */
 
@@ -292,11 +292,11 @@ Options:\n\
 
 void init_random_data(void)
 {
-    unsigned long int i;
+    uint32_t i;
     /* initialise random data */
     mt_init(&global_state.mt);
     for(i=0; i<RANDOM_DATA_BYTES>>2; i+=4) {
-        *((unsigned long *) (random_data + i)) = mt_random(&global_state.mt);
+        *((uint32_t *) (random_data + i)) = mt_random(&global_state.mt);
     }
 }
 

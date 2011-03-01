@@ -294,7 +294,7 @@ Options:\n\
 
 void init_random_data(intmax_t filesize, int blocksize, int threads)
 {
-    uint32_t i;
+    uint32_t i, j, v;
     /* initialise random data */
     mt_init(&global_state.mt);
     for(i=0; i<RANDOM_DATA_BYTES>>2; i+=4) {
@@ -309,8 +309,12 @@ void init_random_data(intmax_t filesize, int blocksize, int threads)
     for(i=0; i<seek_data_len; i++) 
         seek_data[i] = i;
         
-    for(i=seek_data_len-1; i>0; i--) // sort the list randomly by swapping entries
-        seek_data[i] = seek_data[mt_random(&global_state.mt) % i]; 
+    for(i=0; i<seek_data_len; i++) { // sort the list randomly by swapping entries
+        j = mt_random(&global_state.mt) % seek_data_len;
+        v = seek_data[j];
+        seek_data[j] = seek_data[i];
+        seek_data[i] = v;
+    }
 }
 
 int main(int argc, char *argv[])

@@ -1,4 +1,4 @@
-#define MOZZIO_VER "0.3"
+#define MOZZIO_VER "0.4"
 #define _FILE_OFFSET_BITS 64
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -108,6 +108,8 @@ static struct MOZZIO_TEST_STATE {
 #define MOZZIO_RUNNING 2
 static volatile int state_flag;
 static unsigned char random_data[RANDOM_DATA_BYTES];
+static uint32_t *seek_data;
+static uint32_t seek_data_len;
 static int fd;
 static double run_time=30;
 
@@ -125,17 +127,16 @@ void *test_thread(void *ptr)
 {
     unsigned char *p, *buf;
     struct MOZZIO_TEST_STATE *mystate = (struct MOZZIO_TEST_STATE *)ptr;
+    uint32_t seek_ptr;
     long done, todo = mystate->block_size_kb << 10;
     long *lp;
-    off_t my_offset;
-
-/*    if(mystate->thread_num==0)
-        lseek(fd, 0, SEEK_SET);*/
+    off_t my_offset, o;
 
     sleep(1);
     
     p = random_data + mystate->thread_num * (RANDOM_DATA_BYTES / MAX_THREADS);
-    lp = (long *) p;
+    seek_ptr = ((uint32_t) mystate->thread_num * 3) % seek_data_len;
+    my_offset = (off_t)mystate->thread_num * (mystate->filesize / MAX_THREADS);
     
     if(!(buf = malloc(todo)))
         fail("malloc");
@@ -153,11 +154,11 @@ void *test_thread(void *ptr)
         }
         else
         {
-            my_offset = (mt_random(&mystate->mt) % mystate->filesize) & ~(todo-1);
+            o = my_offset + (off_t) seek_data[seek_ptr] * todo;
             if(mystate->test_flags & MOZZIO_WRITE)
-                done = pwrite(fd, p, todo, my_offset);
+                done = pwrite(fd, p, todo, o);
             else
-                done = pread(fd, buf, todo, my_offset);
+                done = pread(fd, buf, todo, o);
         }
         if(done != todo) 
             fail("IO error");
@@ -166,7 +167,8 @@ void *test_thread(void *ptr)
             mystate->bytes_done += done;
             mystate->ios_done++;
         }
-        (*lp)++;
+        seek_ptr = (++seek_ptr) % seek_data_len;
+        (*(unsigned long *)p)++;
     }
     if(mystate->bytes_total)
         fsync(fd);
@@ -290,7 +292,7 @@ Options:\n\
     exit(1);
 }
 
-void init_random_data(void)
+void init_random_data(intmax_t filesize, int blocksize, int threads)
 {
     uint32_t i;
     /* initialise random data */
@@ -298,12 +300,23 @@ void init_random_data(void)
     for(i=0; i<RANDOM_DATA_BYTES>>2; i+=4) {
         *((uint32_t *) (random_data + i)) = mt_random(&global_state.mt);
     }
+    
+    seek_data_len = filesize / blocksize / threads;
+    
+    if(!(seek_data = (uint32_t *) malloc(seek_data_len * sizeof(uint32_t))))
+        fail("Memory allocation failure");
+    
+    for(i=0; i<seek_data_len; i++) 
+        seek_data[i] = i;
+        
+    for(i=seek_data_len-1; i>0; i--) // sort the list randomly by swapping entries
+        seek_data[i] = seek_data[mt_random(&global_state.mt) % i]; 
 }
 
 int main(int argc, char *argv[])
 {
 	char *path = "mozzio.bin";
-	int optchar, test_options=0, num_threads=128, file_size=10, block_size=4;
+	int optchar, test_options=0, num_threads=256, file_size=10, block_size=4, seq_block=256;
 
 	while((optchar=getopt(argc, argv, "p:d:b:s:r:w:t:h?")) != -1)
 	{
@@ -342,14 +355,14 @@ int main(int argc, char *argv[])
 	    }
 	}
 
-        init_random_data();
+	init_random_data((intmax_t) file_size << 30,  block_size << 10,  num_threads);
 	
-	fprintf(stderr, "Starting mozzio v%s.\n(Numthreads: %d, Runtime: %ds, Filesize: %dG, Blocksize: 128K,%dK)\n", MOZZIO_VER, num_threads, (int)run_time, file_size, block_size);
+	fprintf(stderr, "Starting mozzio v%s.\n(Numthreads: %d, Runtime: %ds, Filesize: %dG, Blocksize: %dK,%dK)\n", MOZZIO_VER, num_threads, (int)run_time, file_size, seq_block, block_size);
 	
 	print_status_header();
 
-        perform_test(path, test_options | MOZZIO_WRITE | MOZZIO_SEQUENTIAL, 128,        file_size, 1);
-        perform_test(path, test_options | MOZZIO_READ  | MOZZIO_SEQUENTIAL, 128,        file_size, 1);
+        perform_test(path, test_options | MOZZIO_WRITE | MOZZIO_SEQUENTIAL, seq_block,  file_size, 1);
+        perform_test(path, test_options | MOZZIO_READ  | MOZZIO_SEQUENTIAL, seq_block,  file_size, 1);
         perform_test(path, test_options | MOZZIO_WRITE | MOZZIO_RANDOM,     block_size, file_size, num_threads);
         perform_test(path, test_options | MOZZIO_READ  | MOZZIO_RANDOM,     block_size, file_size, num_threads);
 

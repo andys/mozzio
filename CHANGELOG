@@ -1,3 +1,9 @@
 
+v0.4. random IO from a randomly sorted table of seek values
+
+v0.3. uncompressible/non-de-dupable data for random IO tests
+
+v0.2. multi-threading support
+
 v0.1. supports writing a single large file and measuring sequential read/write, and then testing 4kB small block random I/O, all in a single thread.
 

@@ -17,10 +17,24 @@ Feature list:
 
 * configurable from slow hard disks to fast SSD RAIDs
 
-* compiles and runs properly across OSX,linux,BSD
+* compiles and runs properly across OSX, Linux, BSD, and OpenSolaris
+
+
+Thanks to Peter Jeremy for suggestions, code and bug reports.
+
+
+
+How to use:
+-----------
+
+gcc -D_FILE_OFFSET_SIZE=64 -lpthread -O3 -o mozzio mozzio.c
+
+./mozzio -s <file size in GB>
+
 
 
 Wishlist:
+---------
 
 * support raw devices 
 
@@ -28,13 +42,13 @@ Wishlist:
 
 * auto-size the parameters
 
-* support test data for: 
+* support test data modes for: 
 	- uncompressible vs compressible
 	- de-dupable vs non-de-dupable
 
 
 
-Thanks to Peter Jeremy for suggestions, code and bug reports.
+
 
 
 

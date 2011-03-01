@@ -20,17 +20,16 @@ Feature list:
 * compiles and runs properly across OSX, Linux, BSD, and OpenSolaris
 
 
-Thanks to Peter Jeremy for suggestions, code and bug reports.
-
-
 
 How to use:
 -----------
 
-gcc -D_FILE_OFFSET_SIZE=64 -lpthread -O3 -o mozzio mozzio.c
+$ gcc -lpthread -O3 -o mozzio mozzio.c
 
-./mozzio -s <file size in GB>
+$ ./mozzio  
 
+Defaults to a 10G file. On linux, run it as root with sudo, to allow
+automatic dropping of VM caches between runs.
 
 
 Wishlist:
@@ -47,14 +46,11 @@ Wishlist:
 	- de-dupable vs non-de-dupable
 
 
-
-
-
-
-
 Contact
 -------
 
 Email: andrew@modulus.org
 Twitter: @andy_snow
 IRC: Andys^ on freenode
+
+Thanks to Peter Jeremy for suggestions, code and bug reports.

@@ -92,11 +92,13 @@ void fail(const char *errmsg)
 
 static struct MOZZIO_TEST_STATE {
         pthread_t thread;
-        int thread_num;
+        uint32_t thread_num;
         struct MT mt;
-        int test_flags;
+        uint32_t test_flags;
 	intmax_t filesize, bytes_total;
-	unsigned int block_size_kb;
+	uint32_t block_size_kb;
+	double min_latency, max_latency;
+	
 	volatile intmax_t bytes_done, ios_done;
         volatile double start_time, end_time;
         volatile int finished_flag;
@@ -128,14 +130,13 @@ void *test_thread(void *ptr)
     unsigned char *p, *buf;
     struct MOZZIO_TEST_STATE *mystate = (struct MOZZIO_TEST_STATE *)ptr;
     uint32_t seek_ptr;
-    long done, todo = mystate->block_size_kb << 10;
-    long *lp;
+    uint32_t done, todo = mystate->block_size_kb << 10;
     off_t my_offset, o;
 
     sleep(1);
     
     p = random_data + mystate->thread_num * (RANDOM_DATA_BYTES / MAX_THREADS);
-    seek_ptr = ((uint32_t) mystate->thread_num * 3) % seek_data_len;
+    seek_ptr = (((uint32_t) mystate->thread_num) * 3) % seek_data_len;
     my_offset = (off_t)mystate->thread_num * (mystate->filesize / MAX_THREADS);
     
     if(!(buf = malloc(todo)))
@@ -154,7 +155,7 @@ void *test_thread(void *ptr)
         }
         else
         {
-            o = my_offset + (off_t) seek_data[seek_ptr] * todo;
+            o = my_offset + ((off_t) seek_data[seek_ptr]) * ((off_t) todo);
             if(mystate->test_flags & MOZZIO_WRITE)
                 done = pwrite(fd, p, todo, o);
             else
@@ -292,7 +293,7 @@ Options:\n\
     exit(1);
 }
 
-void init_random_data(intmax_t filesize, int blocksize, int threads)
+void init_random_data(void)
 {
     uint32_t i, j, v;
     /* initialise random data */
@@ -300,8 +301,6 @@ void init_random_data(intmax_t filesize, int blocksize, int threads)
     for(i=0; i<RANDOM_DATA_BYTES>>2; i+=4) {
         *((uint32_t *) (random_data + i)) = mt_random(&global_state.mt);
     }
-    
-    seek_data_len = filesize / blocksize / threads;
     
     if(!(seek_data = (uint32_t *) malloc(seek_data_len * sizeof(uint32_t))))
         fail("Memory allocation failure");
@@ -320,7 +319,8 @@ void init_random_data(intmax_t filesize, int blocksize, int threads)
 int main(int argc, char *argv[])
 {
 	char *path = "mozzio.bin";
-	int optchar, test_options=0, num_threads=256, file_size=10, block_size=4, seq_block=256;
+	int optchar, test_options=0;
+	uint32_t num_threads=256, file_size=10, block_size=4, seq_block=256;
 
 	while((optchar=getopt(argc, argv, "p:d:b:s:r:w:t:h?")) != -1)
 	{
@@ -359,8 +359,9 @@ int main(int argc, char *argv[])
 	    }
 	}
 
-	init_random_data((intmax_t) file_size << 30,  block_size << 10,  num_threads);
-	
+        seek_data_len = (((intmax_t) file_size) << 20) / block_size / num_threads;
+        init_random_data();
+        	
 	fprintf(stderr, "Starting mozzio v%s.\n(Numthreads: %d, Runtime: %ds, Filesize: %dG, Blocksize: %dK,%dK)\n", MOZZIO_VER, num_threads, (int)run_time, file_size, seq_block, block_size);
 	
 	print_status_header();
@@ -376,7 +377,9 @@ int main(int argc, char *argv[])
 
 void print_status_header(void)
 {
-	fprintf(stderr, "              Thrds Block/kB File/GB Time/sec Done/MB IOPS   Byte rate  Progress\n");
+	fprintf(stderr, 
+"              Thrds Block/kB File/GB Time/sec Done/MB IOPS   Byte rate  Progress\n"
+);
 }
 
 void print_status(struct MOZZIO_TEST_STATE *state, const char *extra, double secs_done)

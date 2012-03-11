@@ -1,4 +1,3 @@
-
 mozzio - Portable C device I/O benchmark
 ----------------------------------------
 
@@ -6,7 +5,7 @@ mozzio - Portable C device I/O benchmark
 Feature list:
 
 * tests and reports:
-	1. large-bock sequential read,
+	1. large-block sequential read,
 	2. and write
 	3. small-block random I/O read,
 	4. and write

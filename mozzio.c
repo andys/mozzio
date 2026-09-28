@@ -168,7 +168,8 @@ void *test_thread(void *ptr)
             mystate->bytes_done += done;
             mystate->ios_done++;
         }
-        seek_ptr = (++seek_ptr) % seek_data_len;
+        seek_ptr++;
+        seek_ptr = (seek_ptr) % seek_data_len;
         (*(unsigned long *)p)++;
     }
     if(mystate->bytes_total)
